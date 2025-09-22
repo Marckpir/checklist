@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Calendário de Folgas</title>
+
+    <!-- FullCalendar CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
+
+    <!-- FullCalendar JS -->
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background: #f4f6fa;
+            color: #222;
+        }
+
+        h2,
+        h3 {
+            text-align: center;
+            color: #2a3b4c;
+        }
+
+        #calendar {
+            max-width: 900px;
+            margin: 40px auto;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.07);
+            padding: 16px;
+        }
+
+        #form-container,
+        #user-container {
+            max-width: 400px;
+            margin: 20px auto;
+            padding: 18px 16px 14px 16px;
+            border: 1px solid #e0e4ea;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 1px 6px rgba(0, 0, 0, 0.04);
+
+        }
+
+        label {
+            display: block;
+            margin-bottom: 4px;
+            font-weight: 500;
+            color: #2a3b4c;
+        }
+
+        select,
+        input[type="text"],
+        input[type="date"],
+        input[type="color"] {
+            display: block;
+            margin-bottom: 14px;
+            width: 100%;
+            padding: 7px 10px;
+            border: 1px solid #cfd8dc;
+            border-radius: 5px;
+            font-size: 1em;
+            background: #f7fafc;
+            box-sizing: border-box;
+        }
+
+        input[type="color"] {
+            padding: 0;
+            height: 36px;
+            width: 50px;
+            border: none;
+            background: none;
+        }
+
+        button {
+            padding: 10px 20px;
+            margin-top: 10px;
+            background: #2a7ae4;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: #185abc;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        li {
+            margin-bottom: 10px;
+            background: #f1f5fb;
+            border-radius: 6px;
+            padding: 7px 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        #user-list li span {
+            font-weight: bold;
+            font-size: 1em;
+        }
+
+        #user-list button {
+            background: #e53935;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            padding: 5px 10px;
+            margin-left: 10px;
+            font-size: 0.95em;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        #user-list button:hover {
+            background: #b71c1c;
+        }
+
+        .message {
+            margin-top: 10px;
+            color: #388e3c;
+            font-weight: bold;
+        }
+
+        #future-events-report {
+            max-width: 900px;
+            margin: 40px auto;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 1px 6px rgba(0, 0, 0, 0.04);
+            padding: 18px 16px 14px 16px;
+        }
+
+        #future-events-list li {
+            background: #e3f2fd;
+            border-left: 4px solid #2a7ae4;
+            margin-bottom: 10px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            color: #1a237e;
+            font-size: 1em;
+        }
+
+        @media (max-width: 950px) {
+
+            #calendar,
+            #future-events-report {
+                max-width: 98vw;
+                margin: 20px auto;
+                padding: 8px;
+            }
+        }
+
+        @media (max-width: 700px) {
+            body {
+                margin: 0;
+            }
+
+            .fc {
+                font-size: 0.95em;
+            }
+
+            #calendar {
+                padding: 4px;
+            }
+
+            #form-container,
+            #user-container {
+                max-width: 98vw;
+                margin: 10px auto;
+                padding: 10px 6px 8px 6px;
+            }
+
+            #future-events-report {
+                padding: 10px 6px 8px 6px;
+            }
+
+            div[style*="display: flex"] {
+                flex-direction: column !important;
+                gap: 10px !important;
+                align-items: stretch !important;
+            }
+        }
+
+        @media (max-width: 480px) {
+
+            h2,
+            h3 {
+                font-size: 1.1em;
+            }
+
+            button,
+            input,
+            select,
+            label {
+                font-size: 1em;
+            }
+
+            #calendar {
+                font-size: 0.9em;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <h2>Calendário de Eventos</h2>
+    <!-- Botão para mostrar/ocultar o gerenciamento de usuários -->
+    <button id="toggle-users" style="margin: 20px auto; display: block;">Gerenciar Usuários</button>
+    <div style="display: flex; gap: 20px; justify-content: center; max-width: 900px; margin: 20px auto;">
+
+
+
+        <div id="user-container" style="flex: 1; max-width:400px; display: none;">
+            <h3>Gerenciar Usuários</h3>
+            <form id="user-form">
+                <label for="user-name">Nome:</label>
+                <input type="text" id="user-name" required>
+
+                <label for="user-color">Cor:</label>
+                <input type="color" id="user-color" value="#ff0000" required>
+
+                <button type="submit">Cadastrar Usuário</button>
+            </form>
+            <ul id="user-list"></ul>
+        </div>
+
+        <div id="form-container" style="flex: 1; max-width:400px;">
+            <h3>Adicionar Evento</h3>
+            <form id="event-form">
+                <label for="title">Título:</label>
+                <input type="text" id="title" required>
+
+                <label for="type">Tipo:</label>
+                <select id="type" required>
+                    <option value="Recesso">Recesso</option>
+                    <option value="Férias">Férias</option>
+                </select>
+
+                <label for="user">Usuário:</label>
+                <select id="user" required></select>
+
+                <label for="start">Data de Início:</label>
+                <input type="date" id="start" required>
+
+                <label for="end">Data de Fim:</label>
+                <input type="date" id="end" required>
+
+                <button type="submit">Adicionar Evento</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="calendar"></div>
+
+    <div id="future-events-report" style="max-width: 900px; margin: 40px auto;">
+        <h3>📅 Eventos Futuros</h3>
+        <ul id="future-events-list"></ul>
+    </div>
+
+    <script>
+        const supabaseClient = supabase.createClient(
+            'https://qrlcsyzqznriorpmrfgi.supabase.co',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFybGNzeXpxem5yaW9ycG1yZmdpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcyOTY5MzQsImV4cCI6MjA3Mjg3MjkzNH0.JAiKoavm-DtaZWyVOoR9ulv_n4dGoTwARiufwtnvDGk'
+        );
+
+        let users = [];
+
+        async function loadUsersAndRenderList() {
+            const { data, error } = await supabaseClient.from('users').select('*');
+            if (error) {
+                console.error('Erro ao carregar usuários:', error);
+                return;
+            }
+            users = data;
+
+            const userSelect = document.getElementById('user');
+            userSelect.innerHTML = '';
+            users.forEach(user => {
+                const option = document.createElement('option');
+                option.value = user.user_id; // Use user.user_id (UUID)
+                option.textContent = user.name;
+                userSelect.appendChild(option);
+            });
+
+            const userList = document.getElementById('user-list');
+            userList.innerHTML = '';
+            users.forEach(user => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+      <span style="color:${user.color}; font-weight:bold;">${user.name}</span>
+      <button data-id="${user.user_id}">Excluir</button>
+    `;
+                userList.appendChild(li);
+            });
+
+            document.querySelectorAll('#user-list button').forEach(button => {
+                button.addEventListener('click', async () => {
+                    const userId = button.getAttribute('data-id');
+                    console.log('userId para deletar:', userId); // Adicione isso para depurar
+                    if (userId && confirm('Deseja excluir este usuário?')) {
+                        await supabaseClient.from('users').delete().eq('user_id', userId);
+                        await loadUsersAndRenderList();
+                    }
+                });
+            });
+        }
+
+        document.getElementById('user-form').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const name = document.getElementById('user-name').value.trim();
+            const color = document.getElementById('user-color').value;
+
+            if (name && color) {
+                await supabaseClient.from('users').insert([{ name, color }]);
+                document.getElementById('user-form').reset();
+                await loadUsersAndRenderList();
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', async function () {
+            await loadUsersAndRenderList();
+
+            const calendarEl = document.getElementById('calendar');
+            const calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                locale: 'pt-br',
+                editable: true,
+                selectable: true,
+
+                eventClick: async function (info) {
+                    if (confirm('Deseja excluir este evento?')) {
+                        await supabaseClient.from('events').delete().eq('id', info.event.id);
+                        calendar.refetchEvents();
+                    }
+                },
+
+                events: async function (fetchInfo, successCallback, failureCallback) {
+                    const { data, error } = await supabaseClient
+                        .from('events')
+                        .select('id, title, start_date, end_date, users(name, color)');
+
+                    if (error) {
+                        console.error('Erro ao buscar eventos:', error);
+                        return failureCallback(error);
+                    }
+
+                    const events = data.map(ev => ({
+                        id: ev.id,
+                        title: `${ev.title} - ${ev.users?.name || 'Usuário'}`,
+                        start: ev.start_date,
+                        end: ev.end_date,
+                        backgroundColor: ev.users?.color || '#999'
+                    }));
+
+                    successCallback(events);
+                }
+            });
+
+            calendar.render();
+            await renderFutureEventsReport();
+
+            supabaseClient
+                .channel('events')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'events' }, payload => {
+                    calendar.refetchEvents();
+                })
+                .subscribe();
+
+            const form = document.getElementById('event-form');
+            form.addEventListener('submit', async function (e) {
+                e.preventDefault();
+                const title = document.getElementById('title').value.trim();
+                const type = document.getElementById('type').value;
+                const user_id = document.getElementById('user').value;
+                const start = document.getElementById('start').value;
+                const end = document.getElementById('end').value;
+
+                if (!title || !type || !user_id || !start || !end) {
+                    alert('Preencha todos os campos.');
+                    return;
+                }
+
+                if (new Date(start) > new Date(end)) {
+                    alert('A data de fim não pode ser anterior à data de início.');
+                    return;
+                }
+
+                const adjustedEnd = new Date(end);
+                adjustedEnd.setDate(adjustedEnd.getDate() + 1);
+                const formattedEnd = adjustedEnd.toISOString().split('T')[0];
+
+                console.log({
+                    title,
+                    type,
+                    user_id,
+                    start_date: start,
+                    end_date: adjustedEnd.toISOString()
+                });
+
+                try {
+                    await supabaseClient.from('events').insert([{
+                        title,
+                        type,
+                        user_id,
+                        start_date: start,
+                        end_date: formattedEnd
+                    }]);
+
+                    form.reset();
+                    calendar.refetchEvents();
+                    await renderFutureEventsReport();
+                    alert('Evento cadastrado com sucesso!');
+                } catch (error) {
+                    console.error('Erro ao cadastrar evento:', error);
+                    alert('Erro ao cadastrar evento. Verifique os dados e tente novamente.');
+                }
+            });
+
+            function formatDateOnly(dateStr) {
+                const [year, month, day] = dateStr.split('T')[0].split('-');
+                return `${day}/${month}/${year}`;
+            }
+
+            function getAdjustedEndDate(dateStr) {
+                const date = new Date(dateStr);
+                date.setDate(date.getDate() - 1);
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                return `${day}/${month}/${year}`;
+            }
+
+            async function renderFutureEventsReport() {
+                const today = new Date().toISOString().split('T')[0];
+
+                const { data, error } = await supabaseClient
+                    .from('events')
+                    .select('title, type, start_date, end_date, users(name, color)')
+                    .gte('end_date', today);
+
+                if (error) {
+                    console.error('Erro ao buscar eventos futuros e vigentes:', error);
+                    return;
+                }
+
+                // Ordena os eventos pelo start_date (data de início)
+                data.sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
+
+                const list = document.getElementById('future-events-list');
+                list.innerHTML = '';
+
+                if (data.length === 0) {
+                    list.innerHTML = '<li>Nenhum evento futuro ou vigente encontrado.</li>';
+                    return;
+                }
+
+                function formatDateOnly(dateStr) {
+                    const [year, month, day] = dateStr.split('T')[0].split('-');
+                    return `${day}/${month}/${year}`;
+                }
+
+                function getAdjustedEndDate(dateStr) {
+                    const date = new Date(dateStr);
+                    date.setDate(date.getDate() - 1);
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    return `${day}/${month}/${year}`;
+                }
+
+                data.forEach(ev => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `
+            <strong style="color:${ev.users?.color || '#333'}">${ev.title}</strong>
+            (${ev.type}) - ${ev.users?.name || 'Usuário'}<br>
+            De ${formatDateOnly(ev.start_date)} até ${getAdjustedEndDate(ev.end_date)}
+        `;
+                    list.appendChild(li);
+                });
+            }
+        });
+
+        document.getElementById('toggle-users').addEventListener('click', function () {
+            const userContainer = document.getElementById('user-container');
+            userContainer.style.display = (userContainer.style.display === 'none' || userContainer.style.display === '') ? 'block' : 'none';
+        });
+    </script>
+</body>
+
+</html>
